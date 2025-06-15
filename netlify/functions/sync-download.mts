@@ -25,10 +25,10 @@ export default async (req: Request) => {
   try {
     const store = getStore('tennis-balance-data');
     const data = await store.getJSON('app-data');
-    
+
     if (!data) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: 'Данные не найдены',
           exists: false
         }),
@@ -45,12 +45,10 @@ export default async (req: Request) => {
       }),
       { status: 200, headers: corsHeaders }
     );
-
   } catch (error) {
     console.error('Ошибка при загрузке данных:', error);
-    
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Ошибка сервера при загрузке данных',
         details: error.message
       }),
