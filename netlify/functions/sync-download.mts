@@ -1,17 +1,24 @@
 import { getStore } from '@netlify/blobs';
-import type { Context } from '@netlify/functions';
 
-export default async (req: Request, context: Context) => {
+export default async (req: Request) => {
+  const corsHeaders = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  };
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders
+    });
+  }
+
   if (req.method !== 'GET') {
     return new Response(
       JSON.stringify({ error: 'Метод не поддерживается' }),
-      { 
-        status: 405, 
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        } 
-      }
+      { status: 405, headers: corsHeaders }
     );
   }
 
@@ -25,13 +32,7 @@ export default async (req: Request, context: Context) => {
           error: 'Данные не найдены',
           exists: false
         }),
-        { 
-          status: 404, 
-          headers: { 
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          } 
-        }
+        { status: 404, headers: corsHeaders }
       );
     }
 
@@ -42,13 +43,7 @@ export default async (req: Request, context: Context) => {
         lastSync: data.lastSync || new Date().toISOString(),
         message: 'Данные успешно загружены'
       }),
-      { 
-        status: 200,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      }
+      { status: 200, headers: corsHeaders }
     );
 
   } catch (error) {
@@ -59,13 +54,7 @@ export default async (req: Request, context: Context) => {
         error: 'Ошибка сервера при загрузке данных',
         details: error.message
       }),
-      { 
-        status: 500, 
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        } 
-      }
+      { status: 500, headers: corsHeaders }
     );
   }
 };
