@@ -29,11 +29,7 @@ export default async (req: Request, context: Context) => {
 
     if (!data) {
       return new Response(
-        JSON.stringify({
-<<<<<<< HEAD
-          error: 'Данные в облаке не найдены',
-          message: 'Нет сохраненных данных для загрузки'
-=======
+        JSON.stringify({ 
           error: 'Данные не найдены',
           exists: false
 >>>>>>> 04bd516b1b986f6f5b8ae3cf0833d7fc1b8cd917
