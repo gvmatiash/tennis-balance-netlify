@@ -1135,3 +1135,99 @@ select.form-control {
     align-items: stretch;
   }
 }
+
+/* Синхронизация */
+.sync-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--space-12);
+    margin-bottom: var(--space-16);
+}
+
+.sync-status {
+    position: fixed;
+    top: var(--space-16);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    padding: var(--space-12) var(--space-20);
+    border-radius: var(--radius-base);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    box-shadow: var(--shadow-lg);
+    animation: slideDown var(--duration-normal) var(--ease-standard);
+    max-width: 90vw;
+    text-align: center;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.sync-status--success {
+    background-color: rgba(var(--color-success-rgb), 0.1);
+    color: var(--color-success);
+    border: 1px solid rgba(var(--color-success-rgb), 0.25);
+}
+
+.sync-status--error {
+    background-color: rgba(var(--color-error-rgb), 0.1);
+    color: var(--color-error);
+    border: 1px solid rgba(var(--color-error-rgb), 0.25);
+}
+
+.sync-status--warning {
+    background-color: rgba(var(--color-warning-rgb), 0.1);
+    color: var(--color-warning);
+    border: 1px solid rgba(var(--color-warning-rgb), 0.25);
+}
+
+.sync-status--info {
+    background-color: rgba(var(--color-info-rgb), 0.1);
+    color: var(--color-info);
+    border: 1px solid rgba(var(--color-info-rgb), 0.25);
+}
+
+.sync-status--loading {
+    background-color: rgba(var(--color-primary-rgb, 33, 128, 141), 0.1);
+    color: var(--color-primary);
+    border: 1px solid rgba(var(--color-primary-rgb, 33, 128, 141), 0.25);
+}
+
+.sync-status--loading::after {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-left: var(--space-8);
+    border: 2px solid var(--color-primary);
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 768px) {
+    .sync-actions {
+        grid-template-columns: 1fr;
+    }
+    
+    .sync-status {
+        left: var(--space-12);
+        right: var(--space-12);
+        transform: none;
+        max-width: none;
+    }
+}
