@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TennisBalance v13.1</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>TennisBalance</h1>
+            <p class="subtitle">Учет расходов на настольный теннис</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav">
+            <button class="nav-btn active" data-tab="main">Главная</button>
+            <button class="nav-btn" data-tab="history">История</button>
+            <button class="nav-btn" data-tab="settings">Настройки</button>
+        </nav>
+
+        <!-- Main Tab -->
+        <div id="main-tab" class="tab-content active">
+            <!-- Budget Section -->
+            <section class="budget-section">
+                <div class="budget-card">
+                    <h2>Бюджет абонемента</h2>
+                    <div class="budget-display">
+                        <div class="budget-hours">
+                            <span id="budget-hours">0.0</span>
+                            <small>часов</small>
+                        </div>
+                        <div class="budget-rubles">
+                            <span id="budget-rubles">0</span>
+                            <small>рублей</small>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Participants Section -->
+            <section class="participants-section">
+                <h3>Участники</h3>
+                <div id="participants-list" class="participants-grid">
+                    <div class="no-participants">Участники не добавлены</div>
+                </div>
+            </section>
+
+            <!-- Actions Section -->
+            <section class="actions-section">
+                <button id="record-session-btn" class="btn btn--primary btn--full-width">Записать сессию</button>
+                <button id="add-contribution-btn" class="btn btn--secondary btn--full-width">Внести взнос</button>
+                <button id="buy-subscription-btn" class="btn btn--outline btn--full-width">Купить абонемент</button>
+            </section>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history-tab" class="tab-content">
+            <div class="history-filters">
+                <label class="form-label" for="history-filter">Фильтр операций</label>
+                <select id="history-filter" class="form-control">
+                    <option value="all">Все операции</option>
+                    <option value="session">Игровые сессии</option>
+                    <option value="contribution">Взносы</option>
+                    <option value="subscription">Абонементы</option>
+                </select>
+            </div>
+            <div id="history-list" class="history-list">
+                <div class="no-history">История пуста</div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content">
+            <!-- Hourly Rate Setting -->
+            <section class="settings-section">
+                <h3>Параметры приложения</h3>
+                <div class="form-group">
+                    <input type="number" id="hourly-rate" class="form-control" min="1" step="1" placeholder="Ставка за стол">
+                    <button id="update-rate-btn" class="btn btn--primary">Обновить ставку</button>
+                </div>
+                <p class="text-secondary">Текущая ставка: <span id="current-rate">546</span> руб/час</p>
+            </section>
+
+            <!-- Participants Management -->
+            <section class="settings-section">
+                <h3>Управление участниками</h3>
+                <div class="form-group">
+                    <input type="text" id="new-participant" class="form-control" placeholder="Имя участника">
+                    <button id="add-participant-btn" class="btn btn--primary">Добавить</button>
+                </div>
+                <ul id="participants-settings-list" class="participants-list">
+                    <li class="participant-item">Участники не добавлены</li>
+                </ul>
+            </section>
+
+            <!-- Data Management -->
+            <section class="settings-section">
+                <h3>Управление данными</h3>
+                <div class="data-actions">
+                    <button id="add-demo-data-btn" class="btn btn--secondary">Добавить демо-данные</button>
+                    <button id="export-data-btn" class="btn btn--outline">Экспорт данных</button>
+                    <button id="import-data-btn" class="btn btn--outline">Импорт данных</button>
+                    <button id="clear-data-btn" class="btn btn--outline">Очистить все</button>
+                </div>
+                <input type="file" id="import-file" accept=".json" style="display: none;">
+            </section>
+
+            <!-- App Info -->
+            <section class="settings-section">
+                <h3>О приложении</h3>
+                <div class="app-info">
+                    <p><strong>Версия:</strong> TennisBalance v13.1</p>
+                    <p><strong>Обновления:</strong> Поддержка произвольных сумм взносов, автоматическое значение по умолчанию для покупки абонемента</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Record Session Modal -->
+    <div id="record-session-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Записать игровую сессию</h3>
+                <button class="modal-close" data-modal="record-session-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="record-session-form">
+                    <div class="form-group">
+                        <label class="form-label">Участники сессии</label>
+                        <div id="session-participants" class="checkbox-group">
+                            <p>Сначала добавьте участников</p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="session-duration">Продолжительность (часы)</label>
+                        <input type="number" id="session-duration" class="form-control" min="0.5" step="0.5" value="2.0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="session-description">Описание (опционально)</label>
+                        <input type="text" id="session-description" class="form-control" placeholder="Описание сессии">
+                    </div>
+                    <button type="submit" class="btn btn--primary btn--full-width">Записать сессию</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Contribution Modal -->
+    <div id="add-contribution-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Внести взнос</h3>
+                <button class="modal-close" data-modal="add-contribution-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-contribution-form">
+                    <div class="form-group">
+                        <label class="form-label" for="contribution-from">Кто вносит</label>
+                        <select id="contribution-from" class="form-control" required>
+                            <option value="">Выберите участника</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="contribution-to">Кому вносит</label>
+                        <select id="contribution-to" class="form-control" required>
+                            <option value="">Выберите участника</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="contribution-amount">Сумма взноса (рублей)</label>
+                        <input type="number" id="contribution-amount" class="form-control" min="0" step="any" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="contribution-description">Описание (опционально)</label>
+                        <input type="text" id="contribution-description" class="form-control" placeholder="Описание взноса">
+                    </div>
+                    <button type="submit" class="btn btn--primary btn--full-width">Внести взнос</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buy Subscription Modal -->
+    <div id="buy-subscription-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Купить абонемент</h3>
+                <button class="modal-close" data-modal="buy-subscription-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="buy-subscription-form">
+                    <div class="form-group">
+                        <label class="form-label" for="subscription-buyer">Покупатель</label>
+                        <select id="subscription-buyer" class="form-control" required>
+                            <option value="">Выберите участника</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="subscription-amount">Сумма абонемента (рублей)</label>
+                        <input type="number" id="subscription-amount" class="form-control" min="0" step="any" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="subscription-description">Описание (опционально)</label>
+                        <input type="text" id="subscription-description" class="form-control" placeholder="Описание покупки">
+                    </div>
+                    <button type="submit" class="btn btn--primary btn--full-width">Купить абонемент</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
