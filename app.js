@@ -111,6 +111,18 @@ class TennisBalance {
                 this.addParticipant();
             }
         });
+        // Кнопки синхронизации
+        document.getElementById('sync-upload-btn').addEventListener('click', () => {
+            this.syncUploadToCloud();
+        });
+        
+        document.getElementById('sync-download-btn').addEventListener('click', () => {
+            this.syncDownloadFromCloud();
+        });
+        
+        document.getElementById('sync-status-btn').addEventListener('click', () => {
+            this.checkCloudStatus();
+        });
     }
 
     // Data Management
