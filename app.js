@@ -712,6 +712,143 @@ class TennisBalance {
             return null;
         }
     }
+// ========== МЕТОДЫ ОБЛАЧНОЙ СИНХРОНИЗАЦИИ ==========
+
+// Загрузка данных в облако
+async syncUploadToCloud() {
+  this.showSyncStatus('Сохранение данных в облако...', 'loading');
+  
+  try {
+    const dataToUpload = {
+      participants: this.participants,
+      subscriptionBudget: this.subscriptionBudget,
+      history: this.history,
+      hourlyRate: this.HOURLY_RATE,
+      version: '13.1'
+    };
+
+    const response = await fetch('/api/sync-upload', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dataToUpload)
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      this.showSyncStatus(`✅ Данные успешно сохранены в облако`, 'success');
+    } else {
+      throw new Error(result.error || 'Неизвестная ошибка');
+    }
+  } catch (error) {
+    console.error('Ошибка при сохранении в облако:', error);
+    this.showSyncStatus(`❌ Ошибка: ${error.message}`, 'error');
+  }
+}
+
+// Загрузка данных из облака
+async syncDownloadFromCloud() {
+  this.showSyncStatus('Загрузка данных из облака...', 'loading');
+  
+  try {
+    const response = await fetch('/api/sync-download');
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      // Проверяем, есть ли локальные данные
+      const hasLocalData = this.participants.length > 0 || this.history.length > 0 || this.subscriptionBudget > 0;
+      
+      if (hasLocalData) {
+        const confirmOverwrite = confirm('У вас есть несохранённые данные. Заменить их данными из облака?');
+        if (!confirmOverwrite) {
+          this.showSyncStatus('Загрузка отменена', 'warning');
+          return;
+        }
+      }
+
+      // Загружаем данные из облака
+      const cloudData = result.data;
+      this.participants = cloudData.participants || [];
+      this.subscriptionBudget = cloudData.subscriptionBudget || 0;
+      this.history = cloudData.history || [];
+      this.HOURLY_RATE = cloudData.hourlyRate || 546;
+
+      // Сохраняем в localStorage и обновляем UI
+      this.saveData();
+      this.updateUI();
+
+      this.showSyncStatus(`✅ Данные успешно загружены из облака`, 'success');
+    } else {
+      throw new Error(result.error || 'Данные не найдены');
+    }
+  } catch (error) {
+    console.error('Ошибка при загрузке из облака:', error);
+    this.showSyncStatus(`❌ Ошибка: ${error.message}`, 'error');
+  }
+}
+
+// Проверка статуса данных в облаке
+async checkCloudStatus() {
+  this.showSyncStatus('Проверка статуса данных...', 'loading');
+  
+  try {
+    const response = await fetch('/api/data-status');
+    const result = await response.json();
+
+    if (response.ok) {
+      if (result.exists) {
+        const statusMessage = `📊 ${result.message}
+
+👥 Участников: ${result.participantsCount}
+📝 Записей: ${result.historyCount}  
+💰 Бюджет: ${result.subscriptionBudget} руб.`;
+        
+        this.showSyncStatus(statusMessage, result.isRecent ? 'success' : 'warning');
+      } else {
+        this.showSyncStatus('📭 Данные в облаке не найдены', 'info');
+      }
+    } else {
+      throw new Error(result.error || 'Ошибка при проверке статуса');
+    }
+  } catch (error) {
+    console.error('Ошибка при проверке статуса:', error);
+    this.showSyncStatus(`❌ Ошибка: ${error.message}`, 'error');
+  }
+}
+
+// Показ статусных сообщений
+showSyncStatus(message, type = 'info') {
+  // Удаляем предыдущее сообщение, если есть
+  const existingStatus = document.querySelector('.sync-status');
+  if (existingStatus) {
+    existingStatus.remove();
+  }
+
+  // Создаём новое сообщение
+  const statusDiv = document.createElement('div');
+  statusDiv.className = `sync-status sync-status--${type}`;
+  statusDiv.innerHTML = message.replace(/\n/g, '<br>');
+  
+  document.body.appendChild(statusDiv);
+
+  // Автоматически скрываем через 5 секунд (кроме loading)
+  if (type !== 'loading') {
+    setTimeout(() => {
+      if (statusDiv.parentNode) {
+        statusDiv.style.opacity = '0';
+        statusDiv.style.transform = 'translateX(-50%) translateY(-20px)';
+        setTimeout(() => {
+          if (statusDiv.parentNode) {
+            statusDiv.remove();
+          }
+        }, 300);
+      }
+    }, 5000);
+  }
+}
+
 }
 
 // Initialize app
