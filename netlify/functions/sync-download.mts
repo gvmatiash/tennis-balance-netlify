@@ -26,12 +26,17 @@ export default async (req: Request, context: Context) => {
   try {
     const store = getStore('tennis-balance-data');
     const data = await store.getJSON('app-data');
-    
+
     if (!data) {
       return new Response(
         JSON.stringify({
+<<<<<<< HEAD
           error: 'Данные в облаке не найдены',
           message: 'Нет сохраненных данных для загрузки'
+=======
+          error: 'Данные не найдены',
+          exists: false
+>>>>>>> 04bd516b1b986f6f5b8ae3cf0833d7fc1b8cd917
         }),
         { status: 404, headers: corsHeaders }
       );
@@ -46,10 +51,8 @@ export default async (req: Request, context: Context) => {
       }),
       { status: 200, headers: corsHeaders }
     );
-
   } catch (error) {
     console.error('Ошибка при загрузке данных:', error);
-    
     return new Response(
       JSON.stringify({
         error: 'Ошибка сервера при загрузке данных',

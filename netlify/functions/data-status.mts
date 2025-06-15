@@ -5,7 +5,7 @@ export default async (req: Request, context: Context) => {
   const corsHeaders = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type'
   };
 
@@ -26,7 +26,7 @@ export default async (req: Request, context: Context) => {
   try {
     const store = getStore('tennis-balance-data');
     const data = await store.getJSON('app-data');
-    
+
     if (!data) {
       return new Response(
         JSON.stringify({
@@ -41,20 +41,20 @@ export default async (req: Request, context: Context) => {
     const lastSync = data?.lastSync;
     let timeAgo = 'неизвестно';
     let isRecent = false;
-    
+
     if (lastSync) {
       const syncDate = new Date(lastSync);
       const now = new Date();
       const diffMs = now.getTime() - syncDate.getTime();
       const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
       const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      
+
       if (diffHours > 0) {
         timeAgo = `${diffHours} ч. ${diffMinutes} мин. назад`;
       } else {
         timeAgo = `${diffMinutes} мин. назад`;
       }
-      
+
       isRecent = diffMs < (1000 * 60 * 60);
     }
 
@@ -72,12 +72,10 @@ export default async (req: Request, context: Context) => {
       }),
       { status: 200, headers: corsHeaders }
     );
-
   } catch (error) {
     console.error('Ошибка при проверке статуса:', error);
-    
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Ошибка сервера при проверке статуса',
         details: error.message,
         status: 'error'
