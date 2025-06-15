@@ -848,7 +848,159 @@ showSyncStatus(message, type = 'info') {
     }, 5000);
   }
 }
+async syncUploadToCloud() {
+    this.showSyncStatus('Сохранение данных в облако...', 'loading');
+    
+    try {
+        const currentData = {
+            participants: this.participants,
+            subscriptionBudget: this.subscriptionBudget,
+            history: this.history,
+            hourlyRate: this.HOURLY_RATE
+        };
 
+        const response = await fetch('/api/sync-upload', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(currentData)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+            this.showSyncStatus('✅ Данные успешно сохранены в облако', 'success');
+        } else {
+            throw new Error(result.error || 'Неизвестная ошибка');
+        }
+    } catch (error) {
+        console.error('Ошибка при сохранении в облако:', error);
+        this.showSyncStatus('❌ Ошибка при сохранении: ' + error.message, 'error');
+    }
+}
+
+async syncDownloadFromCloud() {
+    this.showSyncStatus('Загрузка данных из облака...', 'loading');
+    
+    try {
+        const response = await fetch('/api/sync-download', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.status === 404) {
+            this.showSyncStatus('ℹ️ Данные в облаке не найдены', 'info');
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            // Проверим, есть ли локальные данные
+            const hasLocalData = this.participants.length > 0 || this.history.length > 0;
+            
+            let shouldOverwrite = true;
+            if (hasLocalData) {
+                shouldOverwrite = confirm(
+                    'У вас есть локальные данные. Заменить их данными из облака?\n\n' +
+                    'Это действие нельзя отменить.'
+                );
+            }
+            
+            if (shouldOverwrite) {
+                // Загружаем данные из облака
+                this.participants = result.data.participants || [];
+                this.subscriptionBudget = result.data.subscriptionBudget || 0;
+                this.history = result.data.history || [];
+                this.HOURLY_RATE = result.data.hourlyRate || 546;
+                
+                // Сохраняем в localStorage
+                this.saveData();
+                
+                // Обновляем интерфейс
+                this.updateUI();
+                
+                this.showSyncStatus('✅ Данные успешно загружены из облака', 'success');
+            } else {
+                this.showSyncStatus('❌ Загрузка отменена пользователем', 'warning');
+            }
+        } else {
+            throw new Error(result.error || 'Неизвестная ошибка');
+        }
+    } catch (error) {
+        console.error('Ошибка при загрузке из облака:', error);
+        this.showSyncStatus('❌ Ошибка при загрузке: ' + error.message, 'error');
+    }
+}
+
+async checkCloudStatus() {
+    this.showSyncStatus('Проверка статуса данных...', 'loading');
+    
+    try {
+        const response = await fetch('/api/data-status', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.exists) {
+            const statusMsg = `📊 Статус: ${result.message}\n` +
+                                `👥 Участников: ${result.participantsCount}\n` +
+                                `📜 Записей в истории: ${result.historyCount}\n` +
+                                `💰 Бюджет: ${result.subscriptionBudget} руб.`;
+            
+            this.showSyncStatus(statusMsg, result.isRecent ? 'success' : 'warning');
+        } else {
+            this.showSyncStatus('ℹ️ Данные в облаке не найдены', 'info');
+        }
+    } catch (error) {
+        console.error('Ошибка при проверке статуса:', error);
+        this.showSyncStatus('❌ Ошибка при проверке статуса: ' + error.message, 'error');
+    }
+}
+
+showSyncStatus(message, type = 'info') {
+    // Удаляем предыдущие сообщения
+    const existingStatus = document.querySelector('.sync-status');
+    if (existingStatus) {
+        existingStatus.remove();
+    }
+
+    // Создаем новое сообщение
+    const statusElement = document.createElement('div');
+    statusElement.className = `sync-status sync-status--${type}`;
+    statusElement.textContent = message;
+
+    // Добавляем на страницу
+    document.body.appendChild(statusElement);
+
+    // Автоматически удаляем через 5 секунд (кроме loading)
+    if (type !== 'loading') {
+        setTimeout(() => {
+            if (statusElement.parentNode) {
+                statusElement.remove();
+            }
+        }, 5000);
+    }
+}
 }
 
 // Initialize app
