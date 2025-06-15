@@ -663,6 +663,43 @@ class TennisBalance {
         this.updateUI();
         alert('Данные очищены');
     }
+
+// Функции синхронизации с облаком
+    async syncUploadToCloud() {
+        try {
+            const dataToSync = {
+                participants: this.participants,
+                subscriptionBudget: this.subscriptionBudget,
+                history: this.history,
+                hourlyRate: this.HOURLY_RATE,
+                version: '13.1'
+            };
+    
+            this.showSyncStatus('Сохранение в облако...', 'loading');
+    
+            const response = await fetch('/api/sync-upload', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dataToSync)
+            });
+    
+            const result = await response.json();
+    
+            if (response.ok && result.success) {
+                this.showSyncStatus(`Данные сохранены в облако (${new Date(result.lastSync).toLocaleString('ru-RU')})`, 'success');
+                return result;
+            } else {
+                throw new Error(result.error || 'Ошибка при сохранении');
+            }
+    
+        } catch (error) {
+            console.error('Ошибка синхронизации:', error);
+            this.showSyncStatus(`Ошибка: ${error.message}`, 'error');
+            return null;
+        }
+    }
 }
 
 // Initialize app
