@@ -1,15 +1,34 @@
 [build]
-  functions = "netlify/functions"
+  command = "echo 'Building static site'"
   publish = "."
 
 [functions]
+  directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Критически важные redirects с force = true
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/api/sync-upload"
+  to = "/.netlify/functions/sync-upload"
   status = 200
   force = true
 
-[dev]
-  functions = "netlify/functions"
+[[redirects]]
+  from = "/api/sync-download"
+  to = "/.netlify/functions/sync-download"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/data-status"
+  to = "/.netlify/functions/data-status"
+  status = 200
+  force = true
+
+# Обработка CORS preflight запросов
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type"

@@ -1,6 +1,7 @@
 import { getStore } from '@netlify/blobs';
+import type { Context } from '@netlify/functions';
 
-export default async (req: Request) => {
+export default async (req: Request, context: Context) => {
   const corsHeaders = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
@@ -28,9 +29,9 @@ export default async (req: Request) => {
     
     if (!data) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Данные не найдены',
-          exists: false
+        JSON.stringify({
+          error: 'Данные в облаке не найдены',
+          message: 'Нет сохраненных данных для загрузки'
         }),
         { status: 404, headers: corsHeaders }
       );
@@ -40,8 +41,8 @@ export default async (req: Request) => {
       JSON.stringify({
         success: true,
         data: data,
-        lastSync: data.lastSync || new Date().toISOString(),
-        message: 'Данные успешно загружены'
+        message: 'Данные успешно загружены из облака',
+        lastSync: data.lastSync
       }),
       { status: 200, headers: corsHeaders }
     );
@@ -50,7 +51,7 @@ export default async (req: Request) => {
     console.error('Ошибка при загрузке данных:', error);
     
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Ошибка сервера при загрузке данных',
         details: error.message
       }),
