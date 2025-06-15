@@ -1,17 +1,26 @@
 import { getStore } from '@netlify/blobs';
-import type { Context } from '@netlify/functions';
 
-export default async (req: Request, context: Context) => {
+export default async (req: Request) => {
+  // CORS headers для всех ответов
+  const corsHeaders = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  };
+
+  // Обработка preflight OPTIONS запроса
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders
+    });
+  }
+
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Метод не поддерживается' }),
-      { 
-        status: 405, 
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        } 
-      }
+      { status: 405, headers: corsHeaders }
     );
   }
 
@@ -21,13 +30,7 @@ export default async (req: Request, context: Context) => {
     if (!requestData || typeof requestData !== 'object') {
       return new Response(
         JSON.stringify({ error: 'Неверный формат данных' }),
-        { 
-          status: 400, 
-          headers: { 
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          } 
-        }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -47,13 +50,7 @@ export default async (req: Request, context: Context) => {
         lastSync: dataToSave.lastSync,
         syncId: dataToSave.syncId
       }),
-      { 
-        status: 200,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      }
+      { status: 200, headers: corsHeaders }
     );
 
   } catch (error) {
@@ -64,13 +61,7 @@ export default async (req: Request, context: Context) => {
         error: 'Ошибка сервера при сохранении данных',
         details: error.message
       }),
-      { 
-        status: 500, 
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        } 
-      }
+      { status: 500, headers: corsHeaders }
     );
   }
 };

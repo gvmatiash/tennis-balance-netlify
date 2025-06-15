@@ -1,44 +1,43 @@
 import { getStore } from '@netlify/blobs';
-import type { Context } from '@netlify/functions';
 
-export default async (req: Request, context: Context) => {
+export default async (req: Request) => {
+  const corsHeaders = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 
+    'Access-Control-Allow-Headers': 'Content-Type'
+  };
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders
+    });
+  }
+
   if (req.method !== 'GET') {
     return new Response(
       JSON.stringify({ error: 'Метод не поддерживается' }),
-      { 
-        status: 405, 
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        } 
-      }
+      { status: 405, headers: corsHeaders }
     );
   }
 
   try {
     const store = getStore('tennis-balance-data');
-    const metadata = await store.getMetadata('app-data');
+    const data = await store.getJSON('app-data');
     
-    if (!metadata) {
+    if (!data) {
       return new Response(
         JSON.stringify({
           exists: false,
           message: 'Данные в облаке не найдены',
           status: 'not-found'
         }),
-        { 
-          status: 200,
-          headers: { 
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          }
-        }
+        { status: 200, headers: corsHeaders }
       );
     }
 
-    const data = await store.getJSON('app-data');
     const lastSync = data?.lastSync;
-    
     let timeAgo = 'неизвестно';
     let isRecent = false;
     
@@ -70,13 +69,7 @@ export default async (req: Request, context: Context) => {
         historyCount: data?.history?.length || 0,
         subscriptionBudget: data?.subscriptionBudget || 0
       }),
-      { 
-        status: 200,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      }
+      { status: 200, headers: corsHeaders }
     );
 
   } catch (error) {
@@ -88,13 +81,7 @@ export default async (req: Request, context: Context) => {
         details: error.message,
         status: 'error'
       }),
-      { 
-        status: 500, 
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        } 
-      }
+      { status: 500, headers: corsHeaders }
     );
   }
 };

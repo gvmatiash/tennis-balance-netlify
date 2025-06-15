@@ -848,23 +848,25 @@ showSyncStatus(message, type = 'info') {
     }, 5000);
   }
 }
+// Методы облачной синхронизации
 async syncUploadToCloud() {
-    this.showSyncStatus('Сохранение данных в облако...', 'loading');
+    this.showSyncStatus('⏳ Сохранение в облако...', 'loading');
     
     try {
-        const currentData = {
+        const dataToSync = {
             participants: this.participants,
-            subscriptionBudget: this.subscriptionBudget,
             history: this.history,
-            hourlyRate: this.HOURLY_RATE
+            subscriptionBudget: this.subscriptionBudget,
+            tableRate: this.tableRate,
+            syncDate: new Date().toISOString()
         };
 
         const response = await fetch('/api/sync-upload', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify(currentData)
+            body: JSON.stringify(dataToSync)
         });
 
         if (!response.ok) {
@@ -872,135 +874,114 @@ async syncUploadToCloud() {
         }
 
         const result = await response.json();
+        this.showSyncStatus('✅ Данные сохранены в облако', 'success');
         
-        if (result.success) {
-            this.showSyncStatus('✅ Данные успешно сохранены в облако', 'success');
-        } else {
-            throw new Error(result.error || 'Неизвестная ошибка');
-        }
     } catch (error) {
-        console.error('Ошибка при сохранении в облако:', error);
-        this.showSyncStatus('❌ Ошибка при сохранении: ' + error.message, 'error');
+        console.error('Ошибка при сохранении:', error);
+        this.showSyncStatus(`❌ Ошибка при сохранении: ${error.message}`, 'error');
     }
 }
 
 async syncDownloadFromCloud() {
-    this.showSyncStatus('Загрузка данных из облака...', 'loading');
+    const hasLocalData = this.participants.length > 0 || this.history.length > 0;
+    
+    if (hasLocalData) {
+        const confirmed = confirm('Загрузка данных из облака перезапишет текущие данные. Продолжить?');
+        if (!confirmed) return;
+    }
+    
+    this.showSyncStatus('⏳ Загрузка из облака...', 'loading');
     
     try {
-        const response = await fetch('/api/sync-download', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (response.status === 404) {
-            this.showSyncStatus('ℹ️ Данные в облаке не найдены', 'info');
-            return;
-        }
-
+        const response = await fetch('/api/sync-download');
+        
         if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error('Данные в облаке не найдены');
+            }
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
         
         if (result.success && result.data) {
-            // Проверим, есть ли локальные данные
-            const hasLocalData = this.participants.length > 0 || this.history.length > 0;
+            // Загружаем данные
+            this.participants = result.data.participants || [];
+            this.history = result.data.history || [];
+            this.subscriptionBudget = result.data.subscriptionBudget || 0;
+            this.tableRate = result.data.tableRate || 546;
             
-            let shouldOverwrite = true;
-            if (hasLocalData) {
-                shouldOverwrite = confirm(
-                    'У вас есть локальные данные. Заменить их данными из облака?\n\n' +
-                    'Это действие нельзя отменить.'
-                );
-            }
+            // Сохраняем в localStorage
+            this.saveData();
             
-            if (shouldOverwrite) {
-                // Загружаем данные из облака
-                this.participants = result.data.participants || [];
-                this.subscriptionBudget = result.data.subscriptionBudget || 0;
-                this.history = result.data.history || [];
-                this.HOURLY_RATE = result.data.hourlyRate || 546;
-                
-                // Сохраняем в localStorage
-                this.saveData();
-                
-                // Обновляем интерфейс
-                this.updateUI();
-                
-                this.showSyncStatus('✅ Данные успешно загружены из облака', 'success');
-            } else {
-                this.showSyncStatus('❌ Загрузка отменена пользователем', 'warning');
-            }
+            // Обновляем интерфейс
+            this.render();
+            
+            this.showSyncStatus('✅ Данные загружены из облака', 'success');
         } else {
-            throw new Error(result.error || 'Неизвестная ошибка');
+            throw new Error('Неверный формат данных');
         }
+        
     } catch (error) {
-        console.error('Ошибка при загрузке из облака:', error);
-        this.showSyncStatus('❌ Ошибка при загрузке: ' + error.message, 'error');
+        console.error('Ошибка при загрузке:', error);
+        this.showSyncStatus(`❌ Ошибка при загрузке: ${error.message}`, 'error');
     }
 }
 
 async checkCloudStatus() {
-    this.showSyncStatus('Проверка статуса данных...', 'loading');
+    this.showSyncStatus('⏳ Проверка статуса...', 'loading');
     
     try {
-        const response = await fetch('/api/data-status', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
+        const response = await fetch('/api/data-status');
+        
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
         
-        if (result.exists) {
-            const statusMsg = `📊 Статус: ${result.message}\n` +
-                                `👥 Участников: ${result.participantsCount}\n` +
-                                `📜 Записей в истории: ${result.historyCount}\n` +
-                                `💰 Бюджет: ${result.subscriptionBudget} руб.`;
-            
-            this.showSyncStatus(statusMsg, result.isRecent ? 'success' : 'warning');
-        } else {
+        if (!result.exists) {
             this.showSyncStatus('ℹ️ Данные в облаке не найдены', 'info');
+        } else {
+            const statusEmoji = result.isRecent ? '✅' : '⚠️';
+            const message = `${statusEmoji} ${result.message}
+            Участников: ${result.participantsCount}
+            Записей в истории: ${result.historyCount}
+            Бюджет: ${result.subscriptionBudget} руб.`;
+            this.showSyncStatus(message, result.isRecent ? 'success' : 'warning');
         }
+        
     } catch (error) {
         console.error('Ошибка при проверке статуса:', error);
-        this.showSyncStatus('❌ Ошибка при проверке статуса: ' + error.message, 'error');
+        this.showSyncStatus(`❌ Ошибка при проверке: ${error.message}`, 'error');
     }
 }
 
 showSyncStatus(message, type = 'info') {
-    // Удаляем предыдущие сообщения
-    const existingStatus = document.querySelector('.sync-status');
-    if (existingStatus) {
-        existingStatus.remove();
+    // Удаляем предыдущее сообщение
+    const existing = document.querySelector('.sync-status');
+    if (existing) {
+        existing.remove();
     }
-
+    
     // Создаем новое сообщение
-    const statusElement = document.createElement('div');
-    statusElement.className = `sync-status sync-status--${type}`;
-    statusElement.textContent = message;
-
-    // Добавляем на страницу
-    document.body.appendChild(statusElement);
-
-    // Автоматически удаляем через 5 секунд (кроме loading)
+    const statusDiv = document.createElement('div');
+    statusDiv.className = `sync-status sync-status--${type}`;
+    statusDiv.innerHTML = message.replace(/\n/g, '<br>');
+    
+    document.body.appendChild(statusDiv);
+    
+    // Удаляем через 5 секунд (кроме loading)
     if (type !== 'loading') {
         setTimeout(() => {
-            if (statusElement.parentNode) {
-                statusElement.remove();
+            if (statusDiv.parentNode) {
+                statusDiv.remove();
             }
         }, 5000);
     }
 }
+
+
 }
 
 // Initialize app
